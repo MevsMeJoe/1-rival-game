@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>1 RIVAL — Rep Allocation</title>
+
+  <style>
+    :root{
+      --bgA:#0b0c0e;
+      --bgB:#15181c;
+      --panel:#1d2025;
+      --panel2:#121418;
+
+      --stroke: rgba(255,255,255,.10);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.62);
+
+      --radius: 18px;
+      --shadow: 0 18px 70px rgba(0,0,0,.60);
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      color:var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 20% 10%, #1b1d21 0%, #0b0c0e 55%, #060708 100%);
+    }
+
+    .wrap{
+      min-height:100%;
+      display:flex;
+      justify-content:center;
+      padding:16px;
+    }
+
+    .app{
+      width:min(1100px, 100%);
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:14px;
+    }
+
+    @media (max-width: 950px){
+      .app{ grid-template-columns: 1fr; }
+    }
+
+    .panel{
+      border:1px solid var(--stroke);
+      border-radius: var(--radius);
+      background: rgba(0,0,0,.22);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+
+    header.panel{
+      padding:16px;
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:12px;
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(0,0,0,.25));
+    }
+
+    .brand .title{
+      font-weight:950;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      font-size:14px;
+      color: rgba(255,255,255,.88);
+    }
+    .brand .sub{
+      margin-top:4px;
+      color: var(--muted);
+      letter-spacing:.10em;
+      text-transform:uppercase;
+      font-size:11px;
+    }
+
+    .hud{
+      display:grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap:10px;
+      width:min(700px, 100%);
+    }
+
+    @media (max-width: 950px){
+      .hud{ grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .tile{
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 16px;
+      padding:10px 12px;
+      background: rgba(0,0,0,.18);
+    }
+    .tileLabel{
+      font-size:10px;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      color: var(--muted);
+    }
+    .tileVal{
+      margin-top:6px;
+      font-weight:950;
+      font-size:36px;
+      letter-spacing:.02em;
+      line-height:1;
+    }
+
+    .left{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    .boards{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:14px;
+      padding:14px;
+    }
+
+    @media (max-width: 650px){
+  .boards{
+    grid-template-columns: 1fr 1fr;   /* keep side-by-side */
+    gap:10px;
+  }
+}
+
+
+    .board{
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 18px;
+      background: rgba(0,0,0,.16);
+      padding:12px;
+      min-height: 420px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .boardHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      color: rgba(255,255,255,.82);
+      font-weight:900;
+      letter-spacing:.02em;
+    }
+    .boardHead small{
+      color: var(--muted);
+      font-weight:800;
+      letter-spacing:.10em;
+      text-transform:uppercase;
+      font-size:10px;
+    }
+
+    .card{
+      width: min(320px, 100%);
+      aspect-ratio: 1 / 1.45;
+      margin: 0 auto;
+      border-radius: 22px;
+      border:1px solid rgba(255,255,255,.12);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      box-shadow: 0 18px 60px rgba(0,0,0,.55);
+      position:relative;
+      overflow:hidden;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    /* BIG rep overlay */
+   .repOverlay{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+  font-weight: 950;
+  font-size: clamp(96px, 10vw, 180px);
+  letter-spacing: .04em;
+
+  color: rgba(255,255,255,.96);
+  text-shadow:
+    0 18px 60px rgba(0,0,0,.75),
+    0 0 24px rgba(255,255,255,.08);
+
+  pointer-events:none;
+  user-select:none;
+  z-index: 3;
+}
+
+/* Big rep number */
+.repOverlay.repNum{
+  font-weight: 950;
+  font-size: clamp(86px, 9vw, 160px);
+  letter-spacing:.02em;
+  color: rgba(255,255,255,.92);
+}
+
+/* Pre-message text */
+.repOverlay.repMsg{
+  padding: 24px;
+}
+.repOverlay.repMsg .preText{
+  font-size: clamp(12px, 2.6vw, 18px);
+  font-weight: 900;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.85);
+  text-align: center;
+  line-height: 1.35;
+  max-width: 86%;
+}
+
+    .preText{
+  font-size: clamp(12px, 2.6vw, 18px);
+  font-weight: 900;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,.85);
+  text-align: center;
+  line-height: 1.4;
+  max-width: 80%;
+}
+/* When repOverlay contains the preText message, don't use giant number styles */
+.repOverlay:has(.preText){
+  font-size: 0;             /* cancels the huge number sizing */
+  font-weight: 900;
+  padding: 24px;
+}
+
+
+
+    /* Current card instruction (centered, no "line") */
+    .cardInstruction{
+      position:absolute;
+      left:14px;
+      right:14px;
+      bottom:16px;
+      text-align:center;
+      color: rgba(255,255,255,.82);
+      font-weight: 950;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      font-size: 12px;
+      z-index: 3;
+      text-shadow: 0 10px 40px rgba(0,0,0,.60);
+      pointer-events:none;
+      user-select:none;
+    }
+
+    /* DECK: fill the entire rectangle with the image */
+  .deckFill{
+  position:absolute;
+  inset:0;
+  background-color:#000;                 /* black surround */
+  background-image: url("/one-rival-logo.png");
+  background-size: 92% auto;             /* reduce “just a tad” */
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: none;                           /* keep color */
+  z-index: 1;
+}
+
+
+
+    /* Optional dark overlay to keep UI consistent (doesn't grayscale image) */
+    .deckShade{
+      position:absolute;
+      inset:0;
+      background: radial-gradient(900px 600px at 50% 45%, rgba(0,0,0,.15), rgba(0,0,0,.55));
+      z-index: 2;
+      pointer-events:none;
+    }
+
+    /* Deck text centered, bigger, NO line */
+    .deckText{
+      position:absolute;
+      left:18px;
+      right:18px;
+      bottom:16px;
+      text-align:center;
+      color: rgba(255,255,255,.90);
+      font-weight: 950;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      font-size: 13px;
+      text-shadow: 0 12px 44px rgba(0,0,0,.70);
+      z-index: 3;
+      pointer-events:none;
+      user-select:none;
+    }
+
+    /* Controls */
+    .controls.panel{
+      padding:14px;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+
+    .btn{
+      appearance:none;
+      border:1px solid rgba(255,255,255,.16);
+      background: rgba(0,0,0,.22);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 12px 12px;
+      font-weight: 900;
+      letter-spacing:.10em;
+      text-transform:uppercase;
+      cursor:pointer;
+      transition: transform .08s ease, background .18s ease, border-color .18s ease;
+    }
+    .btn:hover{
+      background: rgba(255,255,255,.06);
+      border-color: rgba(255,255,255,.22);
+    }
+    .btn:active{ transform: translateY(1px); }
+    .btn[disabled]{ opacity:.45; cursor:not-allowed; }
+
+    .btn.primary{
+      background: rgba(255,255,255,.12);
+      border-color: rgba(255,255,255,.24);
+    }
+
+    .btn.danger{
+      background: rgba(255,255,255,.05);
+      border-color: rgba(255,255,255,.20);
+    }
+
+    .right{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    .info.panel{
+      padding:14px;
+    }
+    .row{
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      padding:12px;
+      background: rgba(0,0,0,.16);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-top:10px;
+    }
+    .row:first-child{ margin-top:0; }
+    .row .k{
+      color: var(--muted);
+      font-weight:800;
+      letter-spacing:.14em;
+      text-transform:uppercase;
+      font-size:10px;
+    }
+    .row .v{
+      font-weight:900;
+      letter-spacing:.02em;
+      font-size:14px;
+      text-align:right;
+      margin-left:12px;
+    }
+
+    /* Modal */
+   .modalOverlay{
+  position:fixed;
+  inset:0;
+  background: #0b0c0e;   /* solid background */
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+  z-index:999;
+}
+
+    .modalOverlay.show{ display:flex; }
+
+    .modal{
+      width:min(560px, 100%);
+      border-radius: 22px;
+      border:1px solid rgba(255,255,255,.14);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.38));
+      box-shadow: 0 18px 80px rgba(0,0,0,.65);
+      overflow:hidden;
+      position:relative;
+    }
+    .modalHeader{
+      padding:16px 16px 12px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+    }
+    .modalBadge{
+      font-weight:950;
+      letter-spacing:.18em;
+      text-transform:uppercase;
+      font-size:12px;
+      color: rgba(255,255,255,.88);
+    }
+    .modalTitle{
+      margin-top:6px;
+      font-size:22px;
+      font-weight:950;
+      letter-spacing:.02em;
+    }
+    .modalSub{
+      margin-top:2px;
+      color: var(--muted);
+      letter-spacing:.10em;
+      text-transform:uppercase;
+      font-size:11px;
+    }
+    .modalGrid{
+      padding:14px 16px;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    .statTile{
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: 16px;
+      padding:12px;
+      background: rgba(0,0,0,.22);
+    }
+    .tileLabel2{
+      font-size:10px;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      color: var(--muted);
+    }
+    .tileValue2{
+      margin-top:6px;
+      font-size:26px;
+      font-weight:950;
+      letter-spacing:.02em;
+    }
+    .modalFooter{
+      padding:14px 16px 16px;
+      border-top:1px solid rgba(255,255,255,.10);
+    }
+    .modalNote{
+      color: var(--muted);
+      font-size:12px;
+      margin-bottom:6px;
+    }
+    .modalHashtag{
+      font-weight:950;
+      letter-spacing:.10em;
+      text-transform:uppercase;
+      font-size:12px;
+      margin-bottom:12px;
+      color: rgba(255,255,255,.85);
+    }
+    .modalActions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .modalClose{
+      position:absolute;
+      top:10px;
+      right:10px;
+      width:38px;
+      height:38px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,.16);
+      background: rgba(0,0,0,.35);
+      color: rgba(255,255,255,.9);
+      font-weight:950;
+      cursor:pointer;
+    }
+    /* =========================
+   MOBILE: Me vs Me layout
+   ========================= */
+@media (max-width: 950px){
+
+  /* No scrolling: fit to screen */
+  html, body { height: 100%; overflow: hidden; }
+  .wrap { height: 100%; padding: 10px; }
+  .app { height: 100%; }
+
+  /* Hide right panel entirely on mobile */
+  .right { display: none !important; }
+
+  /* Make the left column fill the screen cleanly */
+  .left { height: 100%; display: flex; flex-direction: column; gap: 10px; }
+
+  /* Tighten header so it doesn't eat the screen */
+  header.panel { padding: 12px; }
+  .hud { gap: 8px; }
+  .tile { padding: 8px 10px; border-radius: 14px; }
+  .tileVal { font-size: 28px; }
+
+  /* Keep the 2 cards side-by-side, equal height */
+  .boards{
+    padding: 10px;
+    gap: 10px;
+    grid-template-columns: 1fr 1fr;
+    flex: 1;               /* take remaining space */
+    align-content: stretch;
+  }
+
+  /* Make each board stretch evenly */
+  .board{
+    min-height: 0;         /* allow flex/grid to size it */
+    height: 100%;
+    padding: 10px;
+  }
+
+  /* Cards: equal height + no overflow weirdness */
+  .card{
+  width: 100%;
+  aspect-ratio: 1 / 1.45;  /* regular card proportion */
+  height: auto;            /* stop stretching */
+  border-radius: 18px;
+}
+
+  /* Move instruction text slightly up so it fits */
+  .cardInstruction,
+  .deckText{
+    bottom: 12px;
+    font-size: 11px;
+  }
+
+  /* Controls: only show Flip + Quit */
+  .controls.panel{
+    padding: 10px;
+    display: block;        /* we will manage rows inside */
+  }
+  .controlsExtra{ display:none !important; }
+  .controlsMain{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+}
+
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="app">
+      <div class="left">
+        <header class="panel">
+          <div class="brand">
+            <div class="title">1 RIVAL</div>
+            <div class="sub">Rep Allocation Ritual</div>
+          </div>
+
+          <div class="hud">
+            <div class="tile">
+              <div class="tileLabel">Time</div>
+              <div class="tileVal" id="time">00:00</div>
+            </div>
+            <div class="tile">
+              <div class="tileLabel">Sets</div>
+              <div class="tileVal" id="sets">0</div>
+            </div>
+            <div class="tile">
+              <div class="tileLabel">Calories</div>
+              <div class="tileVal" id="cals">0</div>
+            </div>
+            <div class="tile">
+              <div class="tileLabel">Reps</div>
+              <div class="tileVal" id="reps">0</div>
+            </div>
+          </div>
+        </header>
+
+        <section class="panel boards" aria-label="boards">
+          <!-- CURRENT CARD (face-up) -->
+          <div class="board">
+            <div class="boardHead">
+              <div>Current Card</div>
+              <small id="statusText">Ready</small>
+            </div>
+
+            <div class="card" id="currentCard">
+              <div class="repOverlay repMsg" id="repOverlay">
+
+  <span class="preText" id="preText">YOUR ONLY RIVAL IS YOU</span>
+</div>
+
+              <div class="cardInstruction" id="hintText">Press FLIP to start</div>
+            </div>
+          </div>
+
+          <!-- DECK (face-down) -->
+          <div class="board">
+            <div class="boardHead">
+              <div>Deck</div>
+              <small>∞</small>
+            </div>
+
+            <div class="card" aria-hidden="true">
+              <div class="deckFill"></div>
+              <div class="deckShade"></div>
+              <div class="deckText">RANDOM REPS • EXECUTE</div>
+            </div>
+          </div>
+        </section>
+
+       <section class="controls panel" aria-label="controls">
+  <div class="controlsMain">
+    <button class="btn primary" id="flipBtn" type="button">Flip Card</button>
+    <button class="btn danger" id="quitBtn" type="button" disabled>Quit Game</button>
+  </div>
+
+  <div class="controlsExtra">
+    <button class="btn" id="resetBtn" type="button">Reset</button>
+    <button class="btn" id="modeBtn" type="button">Mode: 1–10</button>
+  </div>
+</section>
+
+      </div>
+
+      <aside class="right">
+        <div class="info panel">
+          <div class="row">
+            <div class="k">Ritual</div>
+            <div class="v">Random • Immediate • Non-Optional</div>
+          </div>
+          <div class="row">
+            <div class="k">Rule</div>
+            <div class="v">Flip → Do reps</div>
+          </div>
+          <div class="row">
+            <div class="k">Quit</div>
+            <div class="v">Shows stats</div>
+          </div>
+          <div class="row">
+            <div class="k">Exit Stats</div>
+            <div class="v">Auto new game</div>
+          </div>
+        </div>
+
+        <div class="info panel">
+          <div class="row">
+            <div class="k">Hashtag</div>
+            <div class="v">#1Rival</div>
+          </div>
+          <div class="row">
+            <div class="k">Note</div>
+            <div class="v">There is only 1 rival… you.</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Stats Modal -->
+  <div class="modalOverlay" id="modalOverlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-label="Session stats">
+      <div class="modalHeader">
+        <div class="modalBadge">1 RIVAL</div>
+        <div class="modalTitle">Session Complete</div>
+        <div class="modalSub">Rep Allocation Ritual</div>
+      </div>
+
+      <div class="modalGrid">
+        <div class="statTile">
+          <div class="tileLabel2">TIME</div>
+          <div class="tileValue2" id="mTime">00:00</div>
+        </div>
+        <div class="statTile">
+          <div class="tileLabel2">SETS</div>
+          <div class="tileValue2" id="mSets">0</div>
+        </div>
+        <div class="statTile">
+          <div class="tileLabel2">REPS</div>
+          <div class="tileValue2" id="mReps">0</div>
+        </div>
+        <div class="statTile">
+          <div class="tileLabel2">CALORIES</div>
+          <div class="tileValue2" id="mCals">0</div>
+        </div>
+      </div>
+
+      <div class="modalFooter">
+        <div class="modalNote">There is only 1 rival… you.</div>
+        <div class="modalHashtag">#1Rival</div>
+
+        <div class="modalActions">
+          <button class="btn primary" id="playAgainBtn" type="button">Play Again</button>
+          <button class="btn" id="downloadBtn" type="button">Download Card</button>
+        </div>
+
+        <button class="modalClose" id="closeBtn" type="button" aria-label="Exit">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
